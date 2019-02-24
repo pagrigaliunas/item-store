@@ -9,7 +9,7 @@ public class Item
     private String title;
     private String description;
     private float price;
-    private int totalAmount;
+    private int totalStock;
     private List<ItemLocation> itemLocations = new ArrayList<>();
 
     public void setId(int id)
@@ -52,14 +52,14 @@ public class Item
         this.price = price;
     }
 
-    public int getTotalAmount()
+    public int getTotalStock()
     {
-        return totalAmount;
+        return totalStock;
     }
 
-    public void setTotalAmount(int totalAmount)
+    public void setTotalStock(int totalStock)
     {
-        this.totalAmount = totalAmount;
+        this.totalStock = totalStock;
     }
 
     public List<ItemLocation> getItemLocations()
