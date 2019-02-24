@@ -5,6 +5,12 @@ public class GPS
     private float log;
     private float lat;
 
+    public GPS(float log, float lat)
+    {
+        this.lat = lat;
+        this.log = log;
+    }
+
     public float getLog()
     {
         return log;

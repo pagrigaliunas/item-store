@@ -9,6 +9,11 @@ public class Item
     private int stock;
     private Location location;
 
+    public Item(int id)
+    {
+        this.id = id;
+    }
+
     public int getId()
     {
         return id;
