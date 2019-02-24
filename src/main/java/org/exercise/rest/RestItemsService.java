@@ -2,6 +2,7 @@ package org.exercise.rest;
 
 import org.exercise.service.ItemService;
 import org.exercise.service.ItemServiceImpl;
+import org.exercise.service.ServiceRegistry;
 import org.exercise.service.model.Item;
 
 import javax.inject.Singleton;
@@ -9,8 +10,8 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -20,7 +21,7 @@ import javax.ws.rs.core.Response;
 @Singleton
 public class RestItemsService
 {
-    private ItemService itemService = new ItemServiceImpl();
+    private ItemService itemService = (ItemService) ServiceRegistry.getService(ItemServiceImpl.class);
 
     @GET
     public Response getAllItems()
@@ -32,7 +33,7 @@ public class RestItemsService
 
     @GET
     @Path("{itemId}")
-    public Response getItem(@QueryParam("itemId") int id)
+    public Response getItem(@PathParam("itemId") int id)
     {
         // TODO add user authentication/authorization check if required.
 
@@ -47,7 +48,7 @@ public class RestItemsService
 
     @DELETE
     @Path("{itemId}")
-    public Response removeItem(@QueryParam("itemId") int id)
+    public Response removeItem(@PathParam("itemId") int id)
     {
         // TODO add user authentication/authorization check if required.
 

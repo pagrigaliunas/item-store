@@ -2,10 +2,21 @@ package org.exercise.service.model;
 
 public class Location
 {
+    private int id;
     private String country;
     private String city;
     private String street;
     private GPS gps;
+
+    public int getId()
+    {
+        return id;
+    }
+
+    public void setId(int id)
+    {
+        this.id = id;
+    }
 
     public String getCountry()
     {

@@ -1,15 +1,18 @@
 package org.exercise.service.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Item
 {
     private int id;
     private String title;
     private String description;
     private float price;
-    private int stock;
-    private Location location;
+    private int totalAmount;
+    private List<ItemLocation> itemLocations = new ArrayList<>();
 
-    public Item(int id)
+    public void setId(int id)
     {
         this.id = id;
     }
@@ -49,23 +52,23 @@ public class Item
         this.price = price;
     }
 
-    public int getStock()
+    public int getTotalAmount()
     {
-        return stock;
+        return totalAmount;
     }
 
-    public void setStock(int stock)
+    public void setTotalAmount(int totalAmount)
     {
-        this.stock = stock;
+        this.totalAmount = totalAmount;
     }
 
-    public Location getLocation()
+    public List<ItemLocation> getItemLocations()
     {
-        return location;
+        return itemLocations;
     }
 
-    public void setLocation(Location location)
+    public void setItemLocations(List<ItemLocation> itemLocations)
     {
-        this.location = location;
+        this.itemLocations = itemLocations;
     }
 }
