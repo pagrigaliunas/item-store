@@ -142,7 +142,18 @@ public class H2Repository implements Repository
     @Override
     public void removeItemLocation(Item item, ItemLocation itemLocation)
     {
-
+        try
+        {
+            PreparedStatement statement = connection.prepareStatement("DELETE FROM Items_Locations WHERE item_id = ? AND location_id = ?");
+            statement.setInt(1, item.getId());
+            statement.setInt(1, itemLocation.getLocation().getId());
+            statement.execute();
+        }
+        catch (SQLException exc)
+        {
+            exc.printStackTrace();
+            //TODO log exception
+        }
     }
 
     private List<Item> createItems(ResultSet resultSet) throws SQLException
