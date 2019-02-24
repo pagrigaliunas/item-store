@@ -23,7 +23,7 @@ public class ItemServiceImpl implements ItemService
     @Override
     public void deleteItem(int id)
     {
-
+        repository.removeItem(id);
     }
 
     @Override

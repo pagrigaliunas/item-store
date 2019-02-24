@@ -16,6 +16,6 @@ public interface Repository
     void saveItem(Item item);
     void saveItemLocation(int itemId, ItemLocation itemLocation);
 
-    void removeItem(Item item);
+    void removeItem(int id);
     void removeItemLocation(Item item, ItemLocation itemLocation);
 }

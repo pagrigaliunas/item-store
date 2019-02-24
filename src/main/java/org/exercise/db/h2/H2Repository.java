@@ -124,9 +124,19 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public void removeItem(Item item)
+    public void removeItem(int id)
     {
-
+        try
+        {
+            PreparedStatement statement = connection.prepareStatement("DELETE FROM Items WHERE id = ?");
+            statement.setInt(1, id);
+            statement.execute();
+        }
+        catch (SQLException exc)
+        {
+            exc.printStackTrace();
+            // TODO log error
+        }
     }
 
     @Override
