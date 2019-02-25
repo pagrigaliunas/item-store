@@ -20,7 +20,7 @@ public class StoreApp
     private void run()
     {
         H2Repository repository = new H2Repository();
-        repository.init();
+        repository.open();
 
         ServiceRegistry.setService(ItemServiceImpl.class, new ItemServiceImpl(repository));
 

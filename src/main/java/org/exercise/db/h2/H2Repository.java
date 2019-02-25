@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.exercise.db.Repository;
 import org.exercise.service.model.GPS;
 import org.exercise.service.model.Item;
-import org.exercise.service.model.ItemLocation;
+import org.exercise.service.model.ItemLocationStock;
 import org.exercise.service.model.Location;
 
 import java.net.URL;
@@ -29,7 +29,7 @@ public class H2Repository implements Repository
     private Map<Integer, Location> locations = new HashMap<>();
 
     @Override
-    public void init()
+    public void open()
     {
         logger.info("Initializing H2 Db repository...");
         try
@@ -42,20 +42,6 @@ public class H2Repository implements Repository
         {
             logger.error("Failed to initialize H2 Db repository.", exc);
         }
-    }
-
-    private void createDbStructure() throws SQLException {
-        logger.info("Creating db structure ...");
-        String url = "jdbc:h2:mem:store";
-        ClassLoader classLoader = getClass().getClassLoader();
-        URL fileUrl = classLoader.getResource("sql/h2_schema.sql");
-        if (fileUrl != null)
-        {
-            url += ";INIT=runscript from '" + fileUrl +"'";
-        }
-
-        connection = DriverManager.getConnection(url, "sa", "");
-        logger.info("Db structure created.");
     }
 
     @Override
@@ -75,21 +61,22 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public Item readItem(int id)
+    public synchronized Item readItem(int id)
     {
-        try
+        try(PreparedStatement statement = connection.prepareStatement(
+                " SELECT *, location_id, stock FROM Items i " +
+                " LEFT JOIN Items_Locations il ON i.id = il.item_id " +
+                " WHERE i.id = ? "))
         {
-            PreparedStatement statement = connection.prepareStatement(
-                    " SELECT *, location_id, stock FROM Items i " +
-                    " LEFT JOIN Items_Locations il ON i.id = il.item_id " +
-                    " WHERE i.id = ? ");
             statement.setInt(1, id);
-            ResultSet resultSet = statement.executeQuery();
-
-            List<Item> items = createItems(resultSet);
-            if (!items.isEmpty())
+            try(ResultSet resultSet = statement.executeQuery())
             {
-                return items.get(0);
+
+                List<Item> items = createItems(resultSet);
+                if (!items.isEmpty())
+                {
+                    return items.get(0);
+                }
             }
         }
         catch (SQLException exc)
@@ -100,16 +87,17 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public List<Item> readAllItems()
+    public synchronized List<Item> readAllItems()
     {
-        try
+        try(Statement statement = connection.createStatement())
         {
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(
+            try(ResultSet resultSet = statement.executeQuery(
                     " SELECT *, location_id, stock FROM Items i " +
                     " LEFT JOIN Items_Locations il ON i.id = il.item_id " +
-                    " ORDER BY i.id");
-            return createItems(resultSet);
+                    " ORDER BY i.id"))
+            {
+                return createItems(resultSet);
+            }
         }
         catch (SQLException exc)
         {
@@ -119,7 +107,7 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public void saveItem(Item item)
+    public synchronized void saveItem(Item item)
     {
         try
         {
@@ -134,22 +122,21 @@ public class H2Repository implements Repository
         }
         catch (SQLException exc)
         {
-            logger.error("Failed to save Item.");
+            logger.error("Failed to save Item.", exc);
         }
     }
 
     @Override
-    public void saveItemLocation(int itemId, ItemLocation itemLocation)
+    public synchronized void saveItemLocation(int itemId, ItemLocationStock itemLocationStock)
     {
 
     }
 
     @Override
-    public void removeItem(int id)
+    public synchronized void removeItem(int id)
     {
-        try
+        try(PreparedStatement statement = connection.prepareStatement("DELETE FROM Items WHERE id = ?"))
         {
-            PreparedStatement statement = connection.prepareStatement("DELETE FROM Items WHERE id = ?");
             statement.setInt(1, id);
             statement.execute();
         }
@@ -160,13 +147,12 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public void removeItemLocation(Item item, ItemLocation itemLocation)
+    public synchronized void removeItemLocation(Item item, ItemLocationStock itemLocationStock)
     {
-        try
+        try(PreparedStatement statement = connection.prepareStatement("DELETE FROM Items_Locations WHERE item_id = ? AND location_id = ?"))
         {
-            PreparedStatement statement = connection.prepareStatement("DELETE FROM Items_Locations WHERE item_id = ? AND location_id = ?");
             statement.setInt(1, item.getId());
-            statement.setInt(1, itemLocation.getLocation().getId());
+            statement.setInt(1, itemLocationStock.getLocation().getId());
             statement.execute();
         }
         catch (SQLException exc)
@@ -178,21 +164,60 @@ public class H2Repository implements Repository
     private void addItem(Item item) throws SQLException
     {
         logger.debug("Adding new Item...");
-        PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO Items(title, description, price) " +
-                " VALUES(?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
-        statement.setString(1, item.getTitle());
-        statement.setString(2, item.getDescription());
-        statement.setFloat(3, item.getPrice());
-        statement.addBatch();
-        statement.executeBatch();
-
-        ResultSet generatedKeys = statement.getGeneratedKeys();
-        if (generatedKeys.next())
+        connection.setAutoCommit(false);
+        try(PreparedStatement statement = connection.prepareStatement(
+                " INSERT INTO Items(title, description, price) " +
+                " VALUES(?, ?, ?)", Statement.RETURN_GENERATED_KEYS))
         {
-            item.setId(generatedKeys.getInt(1));
+            statement.setString(1, item.getTitle());
+            statement.setString(2, item.getDescription());
+            statement.setFloat(3, item.getPrice());
+            statement.execute();
+
+            try(ResultSet generatedKeys = statement.getGeneratedKeys())
+            {
+                if (generatedKeys.next())
+                {
+                    item.setId(generatedKeys.getInt(1));
+                    addItemQuantitiesPerLocation(item);
+                    connection.commit();
+                } else
+                {
+                    logger.warn("Failed to generated Item id. Roll backing changes");
+                    connection.rollback();
+                }
+            }
+        }
+        catch (SQLException exc)
+        {
+            logger.error("Failed to add Item", exc);
+            connection.rollback();
+        }
+        finally
+        {
+            connection.setAutoCommit(true);
         }
         logger.debug("Added new Item.");
+    }
+
+    private void addItemQuantitiesPerLocation(Item item) throws SQLException
+    {
+        List<ItemLocationStock> itemStockList = item.getItemLocationStocks();
+        if (!itemStockList.isEmpty())
+        {
+            try(PreparedStatement statement = connection.prepareStatement("INSERT INTO Items_Locations VALUES(?, ?, ?)"))
+            {
+                for (ItemLocationStock locationStock : itemStockList)
+                {
+                    statement.setInt(1, item.getId());
+                    statement.setInt(2, locationStock.getLocation().getId());
+                    statement.setInt(3, locationStock.getStock());
+                    statement.addBatch();
+                }
+
+                statement.executeBatch();
+            }
+        }
     }
 
     private List<Item> createItems(ResultSet resultSet) throws SQLException
@@ -216,15 +241,29 @@ public class H2Repository implements Repository
             Location location = locations.get(resultSet.getInt("location_id"));
             if (location != null)
             {
-                ItemLocation itemLocation = new ItemLocation();
-                itemLocation.setLocation(location);
-                itemLocation.setStock(resultSet.getInt("stock"));
-                item.getItemLocations().add(itemLocation);
-                item.setTotalStock(item.getTotalStock() + itemLocation.getStock());
+                ItemLocationStock itemLocationStock = new ItemLocationStock();
+                itemLocationStock.setLocation(location);
+                itemLocationStock.setStock(resultSet.getInt("stock"));
+                item.getItemLocationStocks().add(itemLocationStock);
+                item.setTotalStock(item.getTotalStock() + itemLocationStock.getStock());
             }
         }
         logger.debug("Number of loaded Items: {}.", items.size());
         return items;
+    }
+
+    private void createDbStructure() throws SQLException {
+        logger.info("Creating db structure ...");
+        String url = "jdbc:h2:mem:store";
+        ClassLoader classLoader = getClass().getClassLoader();
+        URL fileUrl = classLoader.getResource("sql/h2_schema.sql");
+        if (fileUrl != null)
+        {
+            url += ";INIT=runscript from '" + fileUrl +"'";
+        }
+
+        connection = DriverManager.getConnection(url, "sa", "");
+        logger.info("Db structure created.");
     }
 
     private void loadLocations()
@@ -232,19 +271,23 @@ public class H2Repository implements Repository
         try
         {
             logger.debug("Loading all locations...");
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery("SELECT * FROM Locations");
-            while (resultSet.next())
+            try(Statement statement = connection.createStatement())
             {
-                Location location = new Location();
-                location.setId(resultSet.getInt(1));
-                location.setCountry(resultSet.getString(2));
-                location.setCity(resultSet.getString(3));
-                location.setStreet(resultSet.getString(4));
+                try(ResultSet resultSet = statement.executeQuery("SELECT * FROM Locations"))
+                {
+                    while (resultSet.next())
+                    {
+                        Location location = new Location();
+                        location.setId(resultSet.getInt(1));
+                        location.setCountry(resultSet.getString(2));
+                        location.setCity(resultSet.getString(3));
+                        location.setStreet(resultSet.getString(4));
 
-                GPS gps = new GPS(resultSet.getFloat(5), resultSet.getFloat(6));
-                location.setGps(gps);
-                locations.put(location.getId(), location);
+                        GPS gps = new GPS(resultSet.getFloat(5), resultSet.getFloat(6));
+                        location.setGps(gps);
+                        locations.put(location.getId(), location);
+                    }
+                }
             }
             logger.debug("Number of loaded Locations: {}.", locations.size());
         }

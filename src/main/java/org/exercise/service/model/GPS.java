@@ -2,23 +2,27 @@ package org.exercise.service.model;
 
 public class GPS
 {
-    private float log;
+    private float lon;
     private float lat;
 
-    public GPS(float log, float lat)
+    public GPS()
+    {
+    }
+
+    public GPS(float lon, float lat)
     {
         this.lat = lat;
-        this.log = log;
+        this.lon = lon;
     }
 
-    public float getLog()
+    public float getLon()
     {
-        return log;
+        return lon;
     }
 
-    public void setLog(float log)
+    public void setLon(float lon)
     {
-        this.log = log;
+        this.lon = lon;
     }
 
     public float getLat()

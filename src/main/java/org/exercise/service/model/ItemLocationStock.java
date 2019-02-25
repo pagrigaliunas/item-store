@@ -1,6 +1,6 @@
 package org.exercise.service.model;
 
-public class ItemLocation
+public class ItemLocationStock
 {
     private int stock;
     private Location location;
