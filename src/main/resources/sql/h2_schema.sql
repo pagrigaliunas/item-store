@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS Locations
     country varchar(100) NOT NULL,
     city varchar(100) NOT NULL,
     street varchar(200) NOT NULL,
-    lon real,
+    log real,
     lat real,
 );
 

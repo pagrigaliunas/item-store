@@ -1,9 +1,21 @@
 package org.exercise.service.model;
 
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
+import javax.persistence.Table;
+
+@Embeddable
+@Table(name="Locations")
 public class GPS
 {
+    @Column
     private float log;
+    @Column
     private float lat;
+
+    public GPS()
+    {
+    }
 
     public GPS(float log, float lat)
     {

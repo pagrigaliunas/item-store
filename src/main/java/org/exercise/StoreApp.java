@@ -2,6 +2,7 @@ package org.exercise;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.exercise.db.Repository;
 import org.exercise.db.h2.H2Repository;
 import org.exercise.rest.RestItemsService;
 import org.exercise.service.ItemServiceImpl;
@@ -19,8 +20,8 @@ public class StoreApp
 
     private void run()
     {
-        H2Repository repository = new H2Repository();
-        repository.init();
+        Repository repository = new H2Repository();
+        repository.open();
 
         ServiceRegistry.setService(ItemServiceImpl.class, new ItemServiceImpl(repository));
 
