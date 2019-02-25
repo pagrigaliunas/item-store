@@ -1,5 +1,7 @@
 package org.exercise.db.h2;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exercise.db.Repository;
 import org.exercise.service.model.GPS;
 import org.exercise.service.model.Item;
@@ -21,32 +23,39 @@ import java.util.Map;
 
 public class H2Repository implements Repository
 {
+    private static final Logger logger = LogManager.getLogger(H2Repository.class);
+
     private Connection connection;
     private Map<Integer, Location> locations = new HashMap<>();
 
     @Override
     public void init()
     {
+        logger.info("Initializing H2 Db repository...");
         try
         {
-            String url = "jdbc:h2:mem:store";
-
-            ClassLoader classLoader = getClass().getClassLoader();
-            URL fileUrl = classLoader.getResource("sql/h2_schema.sql");
-            if (fileUrl != null)
-            {
-                url += ";INIT=runscript from '" + fileUrl +"'";
-            }
-
-            connection = DriverManager.getConnection(url, "sa", "");
-
+            createDbStructure();
             loadLocations();
+            logger.info("H2 Db repository initialized.");
         }
         catch (SQLException exc)
         {
-            exc.printStackTrace();
-            // TODO log error
+            logger.error("Failed to initialize H2 Db repository.", exc);
         }
+    }
+
+    private void createDbStructure() throws SQLException {
+        logger.info("Creating db structure ...");
+        String url = "jdbc:h2:mem:store";
+        ClassLoader classLoader = getClass().getClassLoader();
+        URL fileUrl = classLoader.getResource("sql/h2_schema.sql");
+        if (fileUrl != null)
+        {
+            url += ";INIT=runscript from '" + fileUrl +"'";
+        }
+
+        connection = DriverManager.getConnection(url, "sa", "");
+        logger.info("Db structure created.");
     }
 
     @Override
@@ -61,7 +70,7 @@ public class H2Repository implements Repository
         }
         catch (SQLException exc)
         {
-            // TODO log error;
+            logger.error("Failed to close connection.", exc);
         }
     }
 
@@ -85,8 +94,7 @@ public class H2Repository implements Repository
         }
         catch (SQLException exc)
         {
-            exc.printStackTrace();
-            // TODO log error
+            logger.error("Failed to read Item.", exc);
         }
         return null;
     }
@@ -105,8 +113,7 @@ public class H2Repository implements Repository
         }
         catch (SQLException exc)
         {
-            exc.printStackTrace();
-            // TODO log error
+            logger.error("Failed to read all Item.", exc);
         }
         return Collections.emptyList();
     }
@@ -134,8 +141,7 @@ public class H2Repository implements Repository
         }
         catch (SQLException exc)
         {
-            exc.printStackTrace();
-            // TODO log error
+            logger.error("Failed to delete Item.", exc);
         }
     }
 
@@ -151,8 +157,7 @@ public class H2Repository implements Repository
         }
         catch (SQLException exc)
         {
-            exc.printStackTrace();
-            //TODO log exception
+            logger.error("Failed to delete Item Location.", exc);
         }
     }
 
@@ -160,6 +165,7 @@ public class H2Repository implements Repository
     {
         List<Item> items = new ArrayList<>();
         Item item = new Item();
+        logger.debug("Loading Items...");
         while(resultSet.next())
         {
             int id = resultSet.getInt(1);
@@ -183,6 +189,7 @@ public class H2Repository implements Repository
                 item.setTotalStock(item.getTotalStock() + itemLocation.getStock());
             }
         }
+        logger.debug("Number of loaded Items: {}.", items.size());
         return items;
     }
 
@@ -190,6 +197,7 @@ public class H2Repository implements Repository
     {
         try
         {
+            logger.debug("Loading all locations...");
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery("SELECT * FROM Locations");
             while (resultSet.next())
@@ -204,6 +212,7 @@ public class H2Repository implements Repository
                 location.setGps(gps);
                 locations.put(location.getId(), location);
             }
+            logger.debug("Number of loaded Locations: {}.", locations.size());
         }
         catch (SQLException exc)
         {
