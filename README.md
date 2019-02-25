@@ -19,11 +19,26 @@ Project should contain instructions how to build and use the project.
 ## Building application
 To build application, simply type:
 
-`gradlew clean build`
+`gradle(w) clean build`
 ## Running application
 To run application using gradle:
 
-`gradlew -Dlog4j.configurationFile=.\log4j2.properties run`
+`gradle(w) -Dlog4j.configurationFile=.\log4j2.properties run`
 
 where log4j file properties are specified using system variable `log4j.configurationFile`.
+
 ## Running tests 
+To run application tests using gradle:
+
+`gradle(w) test`
+
+## REST Api
+REST Api can be accessed using this url:
+
+GET `http:\\localhost:<port>\items` - gets all items<br/>
+GET `http:\\localhost:<port>\items\{id}` - gets item by id<br/>
+DELETE `http:\\localhost:<port>\items\{id}` - deletes item by id<br/>
+POST `http:\\localhost:<port>\items` - adds new item<br/>
+PATCH `http:\\localhost:<port>\items\{id}` - update existing item<br/>
+
+for now port is hardcoded and is `9081` 

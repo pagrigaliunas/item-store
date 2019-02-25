@@ -32,7 +32,7 @@ public class StoreApp
         logger.info("HTTP server started.");
     }
 
-    public static void main(String args[])
+    public static void main(String[] args)
     {
         logger.info("Starting Store Application...");
         new StoreApp().run();
