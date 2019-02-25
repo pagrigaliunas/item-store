@@ -7,14 +7,16 @@ Item should contain this information:
  - Description
  - Price
  - Stock
- - Location (Country, City, Street and GPS coordinates)
-Language: JAVA 8
-Frameworks: candidates choice
-Data base: candidates choice (preferably in memory, so we don't have to install a db instance to run a project)
-Optional: 
- - Search items by title, price range, etc; Sortable by column
- - Add comment list for an item (Multiple users should be able to add comments on item)
-Preferably shared via public git repo.
+ - Location (Country, City, Street and GPS coordinates).
+ 
+Language: JAVA 8.<br/>
+Frameworks: candidates choice.<br/>
+Data base: candidates choice (preferably in memory, so we don't have to install a db instance to run a project).<br/>
+Optional:<br/> 
+- Search items by title, price range, etc; Sortable by column;<br/>
+- Add comment list for an item (Multiple users should be able to add comments on item);
+    
+Preferably shared via public git repo.<br/>
 Project should contain instructions how to build and use the project.
 ## Building application
 To build application, simply type:
