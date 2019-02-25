@@ -21,7 +21,8 @@ public class ItemServiceImpl implements ItemService
     @Override
     public void addItem(Item item)
     {
-
+        //TODO validate item;
+        repository.saveItem(item);
     }
 
     @Override

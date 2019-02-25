@@ -81,7 +81,7 @@ public class H2Repository implements Repository
         {
             PreparedStatement statement = connection.prepareStatement(
                     " SELECT *, location_id, stock FROM Items i " +
-                    " INNER JOIN Items_Locations il ON i.id = il.item_id " +
+                    " LEFT JOIN Items_Locations il ON i.id = il.item_id " +
                     " WHERE i.id = ? ");
             statement.setInt(1, id);
             ResultSet resultSet = statement.executeQuery();
@@ -107,7 +107,7 @@ public class H2Repository implements Repository
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery(
                     " SELECT *, location_id, stock FROM Items i " +
-                    " INNER JOIN Items_Locations il ON i.id = il.item_id " +
+                    " LEFT JOIN Items_Locations il ON i.id = il.item_id " +
                     " ORDER BY i.id");
             return createItems(resultSet);
         }
@@ -121,7 +121,21 @@ public class H2Repository implements Repository
     @Override
     public void saveItem(Item item)
     {
+        try
+        {
+            if (item.getId() <= 0)
+            {
+                addItem(item);
+            }
+            else
+            {
 
+            }
+        }
+        catch (SQLException exc)
+        {
+            logger.error("Failed to save Item.");
+        }
     }
 
     @Override
@@ -159,6 +173,26 @@ public class H2Repository implements Repository
         {
             logger.error("Failed to delete Item Location.", exc);
         }
+    }
+
+    private void addItem(Item item) throws SQLException
+    {
+        logger.debug("Adding new Item...");
+        PreparedStatement statement = connection.prepareStatement(
+                "INSERT INTO Items(title, description, price) " +
+                " VALUES(?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+        statement.setString(1, item.getTitle());
+        statement.setString(2, item.getDescription());
+        statement.setFloat(3, item.getPrice());
+        statement.addBatch();
+        statement.executeBatch();
+
+        ResultSet generatedKeys = statement.getGeneratedKeys();
+        if (generatedKeys.next())
+        {
+            item.setId(generatedKeys.getInt(1));
+        }
+        logger.debug("Added new Item.");
     }
 
     private List<Item> createItems(ResultSet resultSet) throws SQLException

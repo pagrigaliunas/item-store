@@ -7,6 +7,8 @@ import org.exercise.service.model.Item;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.PATCH;
+import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -42,8 +44,25 @@ public class RestItemsService
         {
             return Response.ok(item).build();
         }
-        Error error = new Error("not_found", "item not found");
-        return Response.status(Response.Status.NOT_FOUND).entity(error).build();
+        return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
+
+    @POST
+    public Response addItem(Item item)
+    {
+        // TODO add user authentication/authorization check if required.
+
+        itemService.addItem(item);
+        return Response.ok().entity(item).build();
+    }
+
+    @PATCH
+    @Path("{itemId}")
+    public Response updateItem()
+    {
+        // TODO add user authentication/authorization check if required.
+        return Response.ok().build();
     }
 
     @DELETE
