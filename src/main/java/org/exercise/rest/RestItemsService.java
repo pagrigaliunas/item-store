@@ -1,5 +1,11 @@
 package org.exercise.rest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonpatch.JsonPatch;
+import com.github.fge.jsonpatch.JsonPatchException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.exercise.service.ItemService;
 import org.exercise.service.ItemServiceImpl;
 import org.exercise.service.ServiceRegistry;
@@ -17,16 +23,20 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.exercise.service.validation.ValidationException;
+import java.io.IOException;
 
 @Path("/items")
 @Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 @Singleton
 public class RestItemsService
 {
+    private static final Logger logger = LogManager.getLogger(RestItemsService.class);
+
     private ItemService itemService = (ItemService) ServiceRegistry.getService(ItemServiceImpl.class);
+    private ObjectMapper jsonMapper = new ObjectMapper();
 
     @GET
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response getAllItems()
     {
         // TODO add user authentication/authorization check if required.
@@ -36,6 +46,7 @@ public class RestItemsService
 
     @GET
     @Path("{itemId}")
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response getItem(@PathParam("itemId") int id)
     {
         // TODO add user authentication/authorization check if required.
@@ -50,6 +61,7 @@ public class RestItemsService
 
 
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response addItem(Item item)
     {
         // TODO add user authentication/authorization check if required.
@@ -67,9 +79,26 @@ public class RestItemsService
 
     @PATCH
     @Path("{itemId}")
-    public Response updateItem(Item item)
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_PATCH_JSON})
+    public Response updateItem(@PathParam("itemId") int id, JsonPatch patch)
     {
         // TODO add user authentication/authorization check if required.
+
+        Item item = itemService.getItem(id);
+        if (item == null)
+        {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        try
+        {
+            item = applyChange(patch, item);
+        }
+        catch (IOException | JsonPatchException exc)
+        {
+            logger.error("Failed to apply Item patch.", exc);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+        }
 
         try
         {
@@ -79,7 +108,7 @@ public class RestItemsService
         {
             return Response.status(Response.Status.BAD_REQUEST).entity(exc.getMessage()).build();
         }
-        return Response.ok().build();
+        return Response.ok().entity(item).build();
     }
 
     @DELETE
@@ -92,10 +121,11 @@ public class RestItemsService
         return Response.ok().build();
     }
 
-    @GET
-    @Path("/locations")
-    public Response getLocations()
+    private Item applyChange(JsonPatch patch, Item item) throws IOException, JsonPatchException
     {
-        return Response.ok().entity(itemService.getAllLocations()).build();
+        JsonNode itemNode = jsonMapper.valueToTree(item);
+        itemNode = patch.apply(itemNode);
+        item = jsonMapper.treeToValue(itemNode, Item.class);
+        return item;
     }
 }

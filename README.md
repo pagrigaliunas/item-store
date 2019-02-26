@@ -34,8 +34,8 @@ To run application tests using gradle:
 
 `gradle(w) test`
 
-## REST Api
-REST Api can be accessed using this url:
+## REST API
+REST API can be accessed using this url:
 
 GET `http:\\localhost:<port>\items` - gets all items<br/>
 GET `http:\\localhost:<port>\items\{id}` - gets item by id<br/>

@@ -33,6 +33,8 @@ public class ItemServiceImpl implements ItemService
         //TODO validate item;
 
         lock.writeLock().lock();
+        // clearing id so new item will be created in db.
+        item.setId(0);
         repository.saveItem(item);
         dirty = true;
         lock.writeLock().unlock();
