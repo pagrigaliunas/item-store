@@ -9,6 +9,7 @@ import org.exercise.service.model.Item;
 
 import java.util.List;
 import org.exercise.service.model.Location;
+import org.exercise.service.validation.ItemValidator;
 import org.exercise.service.validation.ValidationException;
 
 public class ItemServiceImpl implements ItemService
@@ -30,7 +31,8 @@ public class ItemServiceImpl implements ItemService
     @Override
     public void addItem(Item item) throws ValidationException
     {
-        //TODO validate item;
+        ItemValidator validator = new ItemValidator(repository.getLocations());
+        validator.validate(item);
 
         lock.writeLock().lock();
         // clearing id so new item will be created in db.
@@ -53,7 +55,8 @@ public class ItemServiceImpl implements ItemService
     @Override
     public void updateItem(Item item) throws ValidationException
     {
-        //TODO validate item;
+        ItemValidator validator = new ItemValidator(repository.getLocations());
+        validator.validate(item);
 
         lock.writeLock().lock();
         repository.saveItem(item);
