@@ -1,5 +1,6 @@
 package org.exercise.service;
 
+import java.util.Collection;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -7,6 +8,7 @@ import org.exercise.db.Repository;
 import org.exercise.service.model.Item;
 
 import java.util.List;
+import org.exercise.service.model.Location;
 import org.exercise.service.validation.ValidationException;
 
 public class ItemServiceImpl implements ItemService
@@ -14,7 +16,6 @@ public class ItemServiceImpl implements ItemService
     private static final Logger logger = LogManager.getLogger(ItemServiceImpl.class);
 
     private final Repository repository;
-
     private List<Item> items;
     private volatile boolean dirty;
     private final ReentrantReadWriteLock lock;
@@ -74,6 +75,13 @@ public class ItemServiceImpl implements ItemService
         return items;
     }
 
+    @Override
+    public Collection<Location> getAllLocations()
+    {
+        return repository.getLocations().values();
+    }
+
+    //probably still faster than going into db.
     private Item findItem(int id)
     {
         for (Item item : items)

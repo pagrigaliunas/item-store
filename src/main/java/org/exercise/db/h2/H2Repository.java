@@ -161,6 +161,12 @@ public class H2Repository implements Repository
         }
     }
 
+    @Override
+    public Map<Integer, Location> getLocations()
+    {
+        return locations;
+    }
+
     private void addItem(Item item) throws SQLException
     {
         logger.debug("Adding new Item...");

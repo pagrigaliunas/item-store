@@ -42,5 +42,6 @@ GET `http:\\localhost:<port>\items\{id}` - gets item by id<br/>
 DELETE `http:\\localhost:<port>\items\{id}` - deletes item by id<br/>
 POST `http:\\localhost:<port>\items` - adds new item<br/>
 PATCH `http:\\localhost:<port>\items\{id}` - update existing item<br/>
+GET `http:\\localhost:<port>\items\locations` - gets all possible locations<br/>
 
 for now port is hardcoded and is `9081` 

@@ -91,4 +91,11 @@ public class RestItemsService
         itemService.deleteItem(id);
         return Response.ok().build();
     }
+
+    @GET
+    @Path("/locations")
+    public Response getLocations()
+    {
+        return Response.ok().entity(itemService.getAllLocations()).build();
+    }
 }
