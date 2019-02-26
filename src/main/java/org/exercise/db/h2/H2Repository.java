@@ -7,6 +7,9 @@ import org.exercise.service.model.GPS;
 import org.exercise.service.model.Item;
 import org.exercise.service.model.ItemLocationStock;
 import org.exercise.service.model.Location;
+import org.h2.value.Value;
+import org.h2.value.ValueNull;
+import org.h2.value.ValueString;
 
 import java.net.URL;
 import java.sql.Connection;
@@ -15,6 +18,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -111,25 +115,33 @@ public class H2Repository implements Repository
     {
         try
         {
-            if (item.getId() <= 0)
+            try
             {
-                addItem(item);
+                connection.setAutoCommit(false);
+                if (item.getId() <= 0)
+                {
+                    addItem(item);
+                }
+                else
+                {
+                    updateItem(item);
+                }
+                connection.commit();
             }
-            else
+            catch (SQLException exc)
             {
-                updateItem(item);
+                connection.rollback();
+                logger.error("Failed to save Item.", exc);
+            }
+            finally
+            {
+                connection.setAutoCommit(true);
             }
         }
-        catch (SQLException exc)
+        catch (Exception exc)
         {
-            logger.error("Failed to save Item.", exc);
+            logger.error("Internal error.", exc);
         }
-    }
-
-    @Override
-    public void saveItemLocation(int itemId, ItemLocationStock itemLocationStock)
-    {
-
     }
 
     @Override
@@ -147,21 +159,6 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public void removeItemLocation(Item item, ItemLocationStock itemLocationStock)
-    {
-        try(PreparedStatement statement = connection.prepareStatement("DELETE FROM Items_Locations WHERE item_id = ? AND location_id = ?"))
-        {
-            statement.setInt(1, item.getId());
-            statement.setInt(1, itemLocationStock.getLocation().getId());
-            statement.execute();
-        }
-        catch (SQLException exc)
-        {
-            logger.error("Failed to delete Item Location.", exc);
-        }
-    }
-
-    @Override
     public Map<Integer, Location> getLocations()
     {
         return locations;
@@ -170,7 +167,6 @@ public class H2Repository implements Repository
     private void addItem(Item item) throws SQLException
     {
         logger.debug("Adding new Item...");
-        connection.setAutoCommit(false);
         try(PreparedStatement statement = connection.prepareStatement(
                 " INSERT INTO Items(title, description, price) " +
                 " VALUES(?, ?, ?)", Statement.RETURN_GENERATED_KEYS))
@@ -187,29 +183,14 @@ public class H2Repository implements Repository
                     item.setId(generatedKeys.getInt(1));
                     if (!item.getItemLocationStocks().isEmpty())
                     {
-                        try (Statement batchSql = connection.createStatement())
-                        {
-                            addItemQuantitiesPerLocation(item, batchSql);
-                            batchSql.executeBatch();
-                        }
+                        addItemQuantitiesPerLocation(item);
                     }
-                    connection.commit();
                 }
                 else
                 {
                     logger.warn("Failed to generated Item id. Roll backing changes");
-                    connection.rollback();
                 }
             }
-        }
-        catch (SQLException exc)
-        {
-            logger.error("Failed to add Item", exc);
-            connection.rollback();
-        }
-        finally
-        {
-            connection.setAutoCommit(true);
         }
         logger.debug("Added new Item.");
     }
@@ -219,28 +200,39 @@ public class H2Repository implements Repository
         // we use remove and insert item again approach
         int itemId = item.getId();
         logger.debug("Updating Item with id " + itemId + "...");
-        try(Statement sql = connection.createStatement())
+        try(Statement statement = connection.createStatement())
         {
-
-            sql.addBatch("UPDATE Items SET (title, description, price) = (" + item.getTitle() + ", " + item.getDescription() + ", " + item.getPrice() + ") WHERE id = " + itemId);
-            if (!item.getItemLocationStocks().isEmpty())
-            {
-                sql.addBatch("DELETE FROM Items_Locations WHERE item_id = " + itemId);
-                addItemQuantitiesPerLocation(item, sql);
-            }
-            sql.executeBatch();
+            String sql = MessageFormat.format("UPDATE Items SET (title, description, price) = ({0}, {1}, {2}) WHERE id = {3}",
+                    escapeStringValue(item.getTitle()), escapeStringValue(item.getDescription()), item.getPrice(), itemId);
+            statement.addBatch(sql);
+            statement.addBatch("DELETE FROM Items_Locations WHERE item_id = " + itemId);
+            statement.executeBatch();
+            addItemQuantitiesPerLocation(item);
         }
         logger.debug("Updated Item successfully.");
     }
 
-    private void addItemQuantitiesPerLocation(Item item, Statement statement) throws SQLException
+    private String escapeStringValue(String x)
+    {
+        Value v = x == null ? ValueNull.INSTANCE : ValueString.get(x);
+        return v.toString();
+    }
+
+    private void addItemQuantitiesPerLocation(Item item) throws SQLException
     {
         List<ItemLocationStock> itemStockList = item.getItemLocationStocks();
         if (!itemStockList.isEmpty())
         {
-            for (ItemLocationStock locationStock : itemStockList)
+            try(PreparedStatement statement = connection.prepareStatement("INSERT INTO Items_Locations VALUES(?, ?, ?)"))
             {
-                statement.addBatch("INSERT INTO Items_Locations VALUES(" + item.getId() + ", " + locationStock.getLocation().getId() + ", " + locationStock.getStock() + ")");
+                for (ItemLocationStock locationStock : itemStockList)
+                {
+                    statement.setInt(1, item.getId());
+                    statement.setInt(2, locationStock.getLocation().getId());
+                    statement.setInt(3,locationStock.getStock());
+                    statement.addBatch();
+                }
+                statement.executeBatch();
             }
         }
     }
