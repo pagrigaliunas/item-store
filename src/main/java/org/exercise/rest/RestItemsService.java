@@ -1,5 +1,6 @@
 package org.exercise.rest;
 
+import com.github.fge.jsonpatch.JsonPatch;
 import org.exercise.service.ItemService;
 import org.exercise.service.ItemServiceImpl;
 import org.exercise.service.ServiceRegistry;
@@ -20,13 +21,13 @@ import org.exercise.service.validation.ValidationException;
 
 @Path("/items")
 @Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 @Singleton
 public class RestItemsService
 {
     private ItemService itemService = (ItemService) ServiceRegistry.getService(ItemServiceImpl.class);
 
-    @GET
+//    @GET
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response getAllItems()
     {
         // TODO add user authentication/authorization check if required.
@@ -36,6 +37,7 @@ public class RestItemsService
 
     @GET
     @Path("{itemId}")
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response getItem(@PathParam("itemId") int id)
     {
         // TODO add user authentication/authorization check if required.
@@ -50,6 +52,7 @@ public class RestItemsService
 
 
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response addItem(Item item)
     {
         // TODO add user authentication/authorization check if required.
@@ -67,13 +70,14 @@ public class RestItemsService
 
     @PATCH
     @Path("{itemId}")
-    public Response updateItem(Item item)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response updateItem(@PathParam("itemId") int id, JsonPatch patch)
     {
         // TODO add user authentication/authorization check if required.
 
         try
         {
-            itemService.updateItem(item);
+            itemService.updateItem(null);
         }
         catch (ValidationException exc)
         {
@@ -90,12 +94,5 @@ public class RestItemsService
 
         itemService.deleteItem(id);
         return Response.ok().build();
-    }
-
-    @GET
-    @Path("/locations")
-    public Response getLocations()
-    {
-        return Response.ok().entity(itemService.getAllLocations()).build();
     }
 }

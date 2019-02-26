@@ -117,7 +117,7 @@ public class H2Repository implements Repository
             }
             else
             {
-
+                updateItem(item);
             }
         }
         catch (SQLException exc)
@@ -185,9 +185,17 @@ public class H2Repository implements Repository
                 if (generatedKeys.next())
                 {
                     item.setId(generatedKeys.getInt(1));
-                    addItemQuantitiesPerLocation(item);
+                    if (!item.getItemLocationStocks().isEmpty())
+                    {
+                        try (Statement batchSql = connection.createStatement())
+                        {
+                            addItemQuantitiesPerLocation(item, batchSql);
+                            batchSql.executeBatch();
+                        }
+                    }
                     connection.commit();
-                } else
+                }
+                else
                 {
                     logger.warn("Failed to generated Item id. Roll backing changes");
                     connection.rollback();
@@ -206,22 +214,33 @@ public class H2Repository implements Repository
         logger.debug("Added new Item.");
     }
 
-    private void addItemQuantitiesPerLocation(Item item) throws SQLException
+    private void updateItem(Item item) throws SQLException
+    {
+        // we use remove and insert item again approach
+        int itemId = item.getId();
+        logger.debug("Updating Item with id " + itemId + "...");
+        try(Statement sql = connection.createStatement())
+        {
+
+            sql.addBatch("UPDATE Items SET (title, description, price) = (" + item.getTitle() + ", " + item.getDescription() + ", " + item.getPrice() + ") WHERE id = " + itemId);
+            if (!item.getItemLocationStocks().isEmpty())
+            {
+                sql.addBatch("DELETE FROM Items_Locations WHERE item_id = " + itemId);
+                addItemQuantitiesPerLocation(item, sql);
+            }
+            sql.executeBatch();
+        }
+        logger.debug("Updated Item successfully.");
+    }
+
+    private void addItemQuantitiesPerLocation(Item item, Statement statement) throws SQLException
     {
         List<ItemLocationStock> itemStockList = item.getItemLocationStocks();
         if (!itemStockList.isEmpty())
         {
-            try(PreparedStatement statement = connection.prepareStatement("INSERT INTO Items_Locations VALUES(?, ?, ?)"))
+            for (ItemLocationStock locationStock : itemStockList)
             {
-                for (ItemLocationStock locationStock : itemStockList)
-                {
-                    statement.setInt(1, item.getId());
-                    statement.setInt(2, locationStock.getLocation().getId());
-                    statement.setInt(3, locationStock.getStock());
-                    statement.addBatch();
-                }
-
-                statement.executeBatch();
+                statement.addBatch("INSERT INTO Items_Locations VALUES(" + item.getId() + ", " + locationStock.getLocation().getId() + ", " + locationStock.getStock() + ")");
             }
         }
     }
