@@ -25,11 +25,12 @@ public class StoreApp
         ServiceRegistry.setService(ItemServiceImpl.class, new ItemServiceImpl(repository));
 
         logger.info("Starting HTTP server...");
+        int port = 9081;
         URI baseUri = UriBuilder.fromUri("http://localhost/").port(9081).build();
         ResourceConfig config = new ResourceConfig(RestItemsService.class, JacksonFeature.class);
         // starting server
         JdkHttpServerFactory.createHttpServer(baseUri, config);
-        logger.info("HTTP server started.");
+        logger.info("HTTP server started on port " + port + ".");
     }
 
     public static void main(String[] args)

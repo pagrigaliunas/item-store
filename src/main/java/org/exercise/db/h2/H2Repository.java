@@ -61,7 +61,7 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public synchronized Item readItem(int id)
+    public Item readItem(int id)
     {
         try(PreparedStatement statement = connection.prepareStatement(
                 " SELECT *, location_id, stock FROM Items i " +
@@ -87,7 +87,7 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public synchronized List<Item> readAllItems()
+    public List<Item> readAllItems()
     {
         try(Statement statement = connection.createStatement())
         {
@@ -107,7 +107,7 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public synchronized void saveItem(Item item)
+    public void saveItem(Item item)
     {
         try
         {
@@ -127,13 +127,13 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public synchronized void saveItemLocation(int itemId, ItemLocationStock itemLocationStock)
+    public void saveItemLocation(int itemId, ItemLocationStock itemLocationStock)
     {
 
     }
 
     @Override
-    public synchronized void removeItem(int id)
+    public void removeItem(int id)
     {
         try(PreparedStatement statement = connection.prepareStatement("DELETE FROM Items WHERE id = ?"))
         {
@@ -147,7 +147,7 @@ public class H2Repository implements Repository
     }
 
     @Override
-    public synchronized void removeItemLocation(Item item, ItemLocationStock itemLocationStock)
+    public void removeItemLocation(Item item, ItemLocationStock itemLocationStock)
     {
         try(PreparedStatement statement = connection.prepareStatement("DELETE FROM Items_Locations WHERE item_id = ? AND location_id = ?"))
         {
@@ -293,8 +293,7 @@ public class H2Repository implements Repository
         }
         catch (SQLException exc)
         {
-            exc.printStackTrace();
-            //TODO log error
+            logger.error("Failed to load locations.", exc);
         }
     }
 }

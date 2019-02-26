@@ -16,6 +16,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.exercise.service.validation.ValidationException;
 
 @Path("/items")
 @Produces(MediaType.APPLICATION_JSON)
@@ -53,15 +54,31 @@ public class RestItemsService
     {
         // TODO add user authentication/authorization check if required.
 
-        itemService.addItem(item);
+        try
+        {
+            itemService.addItem(item);
+        }
+        catch (ValidationException exc)
+        {
+            return Response.status(Response.Status.BAD_REQUEST).entity(exc.getMessage()).build();
+        }
         return Response.ok().entity(item).build();
     }
 
     @PATCH
     @Path("{itemId}")
-    public Response updateItem()
+    public Response updateItem(Item item)
     {
         // TODO add user authentication/authorization check if required.
+
+        try
+        {
+            itemService.updateItem(item);
+        }
+        catch (ValidationException exc)
+        {
+            return Response.status(Response.Status.BAD_REQUEST).entity(exc.getMessage()).build();
+        }
         return Response.ok().build();
     }
 
