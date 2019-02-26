@@ -18,14 +18,13 @@ public class ItemServiceImpl implements ItemService
 
     private final Repository repository;
     private List<Item> items;
-    private volatile boolean dirty;
+    private volatile boolean dirty = true;
     private final ReentrantReadWriteLock lock;
 
     public ItemServiceImpl(Repository repository)
     {
         this.repository = repository;
         lock = new ReentrantReadWriteLock();
-        items = repository.readAllItems();
     }
 
     @Override
