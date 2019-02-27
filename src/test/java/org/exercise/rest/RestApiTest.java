@@ -2,17 +2,21 @@ package org.exercise.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MediaType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.exercise.StoreApp;
 import org.junit.After;
 import org.junit.Before;
 
+import static javax.ws.rs.core.HttpHeaders.CONTENT_TYPE;
 import static javax.ws.rs.core.HttpHeaders.USER_AGENT;
 
 public class RestApiTest
@@ -48,17 +52,19 @@ public class RestApiTest
         app.stop();
     }
 
-    private <T> RestAPIResponse<T> sendRequest(String url, String method, Class<T> valueType)
+    private <T> RestAPIResponse<T> sendRequest(String url, String method, T value, Class<T> valueType)
     {
         try {
             URL obj = new URL(url);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
-            // optional default is GET
             con.setRequestMethod(method);
-
             //add request header
-            con.setRequestProperty("User-Agent", USER_AGENT);
+            con.setRequestProperty(USER_AGENT, "Integration tests");
+            if (value != null)
+            {
+                writeContent(con, value);
+            }
 
             int responseCode = con.getResponseCode();
             logger.debug("Sending '{}' request to URL : {}", method, url);
@@ -82,31 +88,44 @@ public class RestApiTest
 
     private String readContent(HttpURLConnection con) throws IOException
     {
-        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-        String inputLine;
         StringBuilder response = new StringBuilder();
-
-        while ((inputLine = in.readLine()) != null)
+        try(BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream())))
         {
-            response.append(inputLine);
+            String inputLine;
+
+            while ((inputLine = in.readLine()) != null)
+            {
+                response.append(inputLine);
+            }
         }
-        in.close();
         return response.toString();
+    }
+
+    private <T> void writeContent(HttpURLConnection con, T value) throws IOException
+    {
+        con.setDoOutput(true);
+        con.setRequestProperty(CONTENT_TYPE, MediaType.APPLICATION_JSON);
+        try(BufferedWriter out = new BufferedWriter(new OutputStreamWriter(con.getOutputStream())))
+        {
+            String valueJson = jsonMapper.writeValueAsString(value);
+            out.write(valueJson);
+            out.flush();
+        }
     }
 
     <T> RestAPIResponse<T> sendGet(String url, Class<T> valueType)
     {
-        return sendRequest(url, HttpMethod.GET, valueType);
+        return sendRequest(url, HttpMethod.GET, null, valueType);
     }
 
     <T> RestAPIResponse<T> sendDelete(String url)
     {
-        return sendRequest(url, HttpMethod.DELETE, null);
+        return sendRequest(url, HttpMethod.DELETE, null, null);
     }
 
-    <T> RestAPIResponse<T> sendPost(String url, Class<T> valueType)
+    <T> RestAPIResponse<T> sendPost(String url, T value, Class<T> valueType)
     {
-        return sendRequest(url, HttpMethod.POST, valueType);
+        return sendRequest(url, HttpMethod.POST, value, valueType);
     }
 
     private boolean isSuccess(int responseCode)
