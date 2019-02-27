@@ -168,12 +168,14 @@ public class RestItemsServiceTest extends RestApiTest
         String newDescription = "Simple printer description";
         float price = 399.0f;
         int totalStock = 10;
+        ItemLocationStock locationStockToRemove = element.getItemLocationStocks().get(0);
 
         String patchRow1 = "{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"" + newTitle + "\"}";
         String patchRow2 = "{\"op\": \"replace\", \"path\": \"/description\", \"value\": \"" + newDescription + "\"}";
         String patchRow3 = "{\"op\": \"replace\", \"path\": \"/price\", \"value\": \"" + price + "\"}";
         String patchRow4 = "{\"op\": \"replace\", \"path\": \"/totalStock\", \"value\": \"" + totalStock + "\"}";
-        String patchStr = "[" + patchRow1 +","+ patchRow2 + "," + patchRow3 + "," + patchRow4 +"]";
+        String patchRow5 = "{\"op\": \"remove\", \"path\": \"/itemLocationStocks/0\"}";
+        String patchStr = "[" + patchRow1 + "," + patchRow2 + "," + patchRow3 + "," + patchRow4 + "," + patchRow5 + "]";
 
         JsonPatch patch = getJsonMapper().readValue(patchStr, JsonPatch.class);
 
@@ -189,6 +191,77 @@ public class RestItemsServiceTest extends RestApiTest
         assertEquals(price, updatedElement.getPrice(), 0.0001f);
 
         //totalStock should not change as it is calculated property
-        assertEquals(element.getTotalStock(), updatedElement.getTotalStock());
+        assertEquals(element.getTotalStock() - locationStockToRemove.getStock(), updatedElement.getTotalStock());
+        assertEquals(element.getItemLocationStocks().size() - 1, updatedElement.getItemLocationStocks().size());
+    }
+
+    @Test
+    public void updateItemWithInvalidPriceTest() throws Exception
+    {
+        int id = 1;
+        RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
+        Item element = response.getElement();
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertNotNull(element);
+
+        float price = -399.0f;
+
+        String patchRow1 = "{\"op\": \"replace\", \"path\": \"/price\", \"value\": \"" + price + "\"}";
+        String patchStr = "[" + patchRow1 + "]";
+
+        JsonPatch patch = getJsonMapper().readValue(patchStr, JsonPatch.class);
+
+        response = sendPatch(BASE_URL + "/" + id, patch, Item.class);
+
+        assertNotNull(response);
+        assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    public void updateItemWithInvalidLocationStockTest() throws Exception
+    {
+        int id = 1;
+        RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
+        Item element = response.getElement();
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertNotNull(element);
+
+        int locationStock = -20;
+
+        String patchRow1 = "{\"op\": \"replace\", \"path\": \"/itemLocationStocks/0/stock\", \"value\": \"" + locationStock + "\"}";
+        String patchStr = "[" + patchRow1 + "]";
+
+        JsonPatch patch = getJsonMapper().readValue(patchStr, JsonPatch.class);
+
+        response = sendPatch(BASE_URL + "/" + id, patch, Item.class);
+
+        assertNotNull(response);
+        assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    public void updateItemWithInvalidLocationTest() throws Exception
+    {
+        int id = 1;
+        RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
+        Item element = response.getElement();
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertNotNull(element);
+
+        int locationId = 0;
+
+        //setting invalid location id
+        String patchRow1 = "{\"op\": \"replace\", \"path\": \"/itemLocationStocks/0/location/id\", \"value\": \"" + locationId + "\"}";
+        String patchStr = "[" + patchRow1 + "]";
+
+        JsonPatch patch = getJsonMapper().readValue(patchStr, JsonPatch.class);
+
+        response = sendPatch(BASE_URL + "/" + id, patch, Item.class);
+
+        assertNotNull(response);
+        assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     }
 }
