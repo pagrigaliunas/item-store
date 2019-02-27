@@ -262,7 +262,6 @@ public class H2Repository implements Repository
                 itemLocationStock.setLocation(location);
                 itemLocationStock.setStock(resultSet.getInt("stock"));
                 item.getItemLocationStocks().add(itemLocationStock);
-                item.setTotalStock(item.getTotalStock() + itemLocationStock.getStock());
             }
         }
         logger.debug("Number of loaded Items: {}.", items.size());

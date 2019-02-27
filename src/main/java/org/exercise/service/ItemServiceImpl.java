@@ -1,6 +1,7 @@
 package org.exercise.service;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -9,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.exercise.db.Repository;
 import org.exercise.service.model.Item;
 
+import org.exercise.service.model.ItemLocationStock;
 import org.exercise.service.model.Location;
 import org.exercise.service.validation.ItemValidator;
 import org.exercise.service.validation.ValidationException;
@@ -38,6 +40,9 @@ public class ItemServiceImpl implements ItemService
         // clearing id so new item will be created in db.
         item.setId(0);
         repository.saveItem(item);
+        int total = item.getItemLocationStocks().stream().mapToInt(ItemLocationStock::getStock).sum();
+        item.setTotalStock(total);
+
         dirty = true;
         lock.writeLock().unlock();
     }
@@ -97,7 +102,13 @@ public class ItemServiceImpl implements ItemService
             // In this case no need for pointless cache refresh.
             if (dirty)
             {
-                items = repository.readAllItems().stream().collect(Collectors.toMap(Item::getId, item -> item));
+                List<Item> items = repository.readAllItems();
+                items.forEach(i ->
+                {
+                    int total = i.getItemLocationStocks().stream().mapToInt(ItemLocationStock::getStock).sum();
+                    i.setTotalStock(total);
+                });
+                this.items = items.stream().collect(Collectors.toMap(Item::getId, item -> item));
                 dirty = false;
             }
             lock.readLock().lock();

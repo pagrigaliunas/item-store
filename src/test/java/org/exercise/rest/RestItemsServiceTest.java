@@ -1,6 +1,5 @@
 package org.exercise.rest;
 
-import javax.validation.constraints.AssertTrue;
 import javax.ws.rs.core.Response;
 import org.exercise.service.model.Item;
 import org.exercise.service.model.ItemLocationStock;
@@ -32,6 +31,9 @@ public class RestItemsServiceTest extends RestApiTest
         Item item = response.getElement();
         Assert.assertNotNull(item);
         Assert.assertEquals(id, item.getId());
+
+        int total = item.getItemLocationStocks().stream().mapToInt(ItemLocationStock::getStock).sum();
+        Assert.assertEquals(item.getTotalStock(), total);
     }
 
     @Test
