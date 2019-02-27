@@ -41,7 +41,7 @@ GET `http:\\localhost:<port>\items` - gets all items<br/>
 GET `http:\\localhost:<port>\items\{id}` - gets item by id<br/>
 DELETE `http:\\localhost:<port>\items\{id}` - deletes item by id<br/>
 POST `http:\\localhost:<port>\items` - adds new item<br/>
-PATCH `http:\\localhost:<port>\items\{id}` - update existing item<br/>
+PATCH `http:\\localhost:<port>\items\{id}` - update existing item. Supports [Json Patch](https://tools.ietf.org/html/rfc6902)<br/>
 GET `http:\\localhost:<port>\items\locations` - gets all possible locations<br/>
 
-for now port is hardcoded and is `9081` 
+for now `<port>` is hardcoded and is `9081` 
