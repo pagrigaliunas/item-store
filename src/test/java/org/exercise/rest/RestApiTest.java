@@ -6,8 +6,13 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 import org.apache.logging.log4j.LogManager;
@@ -21,17 +26,17 @@ import static javax.ws.rs.core.HttpHeaders.USER_AGENT;
 
 public class RestApiTest
 {
-    private static final String LOG4J_CONFIG_PROP_NAME = "log4j.configurationFile";
-
     private static final Logger logger;
     static
     {
-        String property = System.getProperty(LOG4J_CONFIG_PROP_NAME);
+        String property = System.getProperty(StoreApp.LOG4J_CONFIG_PROP_NAME);
         if (property == null || property.isEmpty())
         {
-            System.setProperty(LOG4J_CONFIG_PROP_NAME, ".\\log4j2.properties");
+            System.setProperty(StoreApp.LOG4J_CONFIG_PROP_NAME, ".\\log4j2.properties");
         }
         logger = LogManager.getLogger(RestApiTest.class);
+
+        allowUnsupportedHttpMethods("PATCH");
     }
 
     private StoreApp app;
@@ -52,7 +57,12 @@ public class RestApiTest
         app.stop();
     }
 
-    private <T> RestAPIResponse<T> sendRequest(String url, String method, T value, Class<T> valueType)
+    ObjectMapper getJsonMapper()
+    {
+        return jsonMapper;
+    }
+
+    private <T, V> RestAPIResponse<T> sendRequest(String url, String method, V value, Class<T> resultType)
     {
         try {
             URL obj = new URL(url);
@@ -72,10 +82,10 @@ public class RestApiTest
 
             T element = null;
             // checking for success
-            if (isSuccess(responseCode) && valueType != null)
+            if (isSuccess(responseCode) && resultType != null)
             {
                 String response = readContent(con);
-                element = jsonMapper.readValue(response, valueType);
+                element = jsonMapper.readValue(response, resultType);
             }
             return new RestAPIResponse<>(element, responseCode);
         }
@@ -101,7 +111,7 @@ public class RestApiTest
         return response.toString();
     }
 
-    private <T> void writeContent(HttpURLConnection con, T value) throws IOException
+    private <V> void writeContent(HttpURLConnection con, V value) throws IOException
     {
         con.setDoOutput(true);
         con.setRequestProperty(CONTENT_TYPE, MediaType.APPLICATION_JSON);
@@ -113,9 +123,9 @@ public class RestApiTest
         }
     }
 
-    <T> RestAPIResponse<T> sendGet(String url, Class<T> valueType)
+    <T> RestAPIResponse<T> sendGet(String url, Class<T> resultType)
     {
-        return sendRequest(url, HttpMethod.GET, null, valueType);
+        return sendRequest(url, HttpMethod.GET, null, resultType);
     }
 
     <T> RestAPIResponse<T> sendDelete(String url)
@@ -123,9 +133,14 @@ public class RestApiTest
         return sendRequest(url, HttpMethod.DELETE, null, null);
     }
 
-    <T> RestAPIResponse<T> sendPost(String url, T value, Class<T> valueType)
+    <T, V> RestAPIResponse<T> sendPost(String url, V value, Class<T> resultType)
     {
-        return sendRequest(url, HttpMethod.POST, value, valueType);
+        return sendRequest(url, HttpMethod.POST, value, resultType);
+    }
+
+    <T, V> RestAPIResponse<T> sendPatch(String url, V value, Class<T> resultType)
+    {
+        return sendRequest(url, HttpMethod.PATCH, value, resultType);
     }
 
     private boolean isSuccess(int responseCode)
@@ -133,31 +148,48 @@ public class RestApiTest
         return responseCode / 100 == 2;
     }
 
-    public class RestAPIResponse<T>
+    private static void allowUnsupportedHttpMethods(String... methods)
+    {
+        try
+        {
+            Field methodsField = HttpURLConnection.class.getDeclaredField("methods");
+
+            Field modifiersField = Field.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(methodsField, methodsField.getModifiers() & ~Modifier.FINAL);
+
+            methodsField.setAccessible(true);
+
+            String[] oldMethods = (String[]) methodsField.get(null);
+            Set<String> methodsSet = new LinkedHashSet<>(Arrays.asList(oldMethods));
+            methodsSet.addAll(Arrays.asList(methods));
+            String[] newMethods = methodsSet.toArray(new String[0]);
+
+            methodsField.set(null/*static field*/, newMethods);
+        }
+        catch (NoSuchFieldException | IllegalAccessException e)
+        {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    class RestAPIResponse<T>
     {
         private T element;
         private int status;
 
-        public RestAPIResponse(T element, int status)
+        RestAPIResponse(T element, int status)
         {
             this.element = element;
             this.status = status;
         }
 
-        public T getElement() {
+        T getElement() {
             return element;
         }
 
-        public void setElement(T element) {
-            this.element = element;
-        }
-
-        public int getStatus() {
+        int getStatus() {
             return status;
-        }
-
-        public void setStatus(int status) {
-            this.status = status;
         }
     }
 }

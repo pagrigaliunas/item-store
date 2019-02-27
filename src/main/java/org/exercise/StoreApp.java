@@ -17,7 +17,18 @@ import java.net.URI;
 
 public class StoreApp
 {
-    private static final Logger logger = LogManager.getLogger(StoreApp.class);
+    public static final String LOG4J_CONFIG_PROP_NAME = "log4j.configurationFile";
+
+    private static final Logger logger;
+    static
+    {
+        String property = System.getProperty(LOG4J_CONFIG_PROP_NAME);
+        if (property == null || property.isEmpty())
+        {
+            System.setProperty(LOG4J_CONFIG_PROP_NAME, ".\\log4j2.properties");
+        }
+        logger = LogManager.getLogger(StoreApp.class);
+    }
 
     private HttpServer httpServer;
     private H2Repository repository;

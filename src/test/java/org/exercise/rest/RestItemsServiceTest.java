@@ -1,11 +1,17 @@
 package org.exercise.rest;
 
 import javax.ws.rs.core.Response;
+
+import com.github.fge.jsonpatch.JsonPatch;
 import org.exercise.service.model.Item;
 import org.exercise.service.model.ItemLocationStock;
 import org.exercise.service.model.Location;
-import org.junit.Assert;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class RestItemsServiceTest extends RestApiTest
 {
@@ -18,8 +24,8 @@ public class RestItemsServiceTest extends RestApiTest
         RestAPIResponse<Item[]> response = sendGet(BASE_URL, Item[].class);
 
         Item[] items = response.getElement();
-        Assert.assertNotNull(items);
-        Assert.assertEquals(5, items.length);
+        assertNotNull(items);
+        assertEquals(5, items.length);
     }
 
     @Test
@@ -29,11 +35,11 @@ public class RestItemsServiceTest extends RestApiTest
         RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
 
         Item item = response.getElement();
-        Assert.assertNotNull(item);
-        Assert.assertEquals(id, item.getId());
+        assertNotNull(item);
+        assertEquals(id, item.getId());
 
         int total = item.getItemLocationStocks().stream().mapToInt(ItemLocationStock::getStock).sum();
-        Assert.assertEquals(item.getTotalStock(), total);
+        assertEquals(item.getTotalStock(), total);
     }
 
     @Test
@@ -42,8 +48,8 @@ public class RestItemsServiceTest extends RestApiTest
         int id = -1;
         RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
 
-        Assert.assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
-        Assert.assertNull(response.getElement());
+        assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
+        assertNull(response.getElement());
     }
 
     @Test
@@ -53,17 +59,17 @@ public class RestItemsServiceTest extends RestApiTest
         // check if item exists
         RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
         Item item = response.getElement();
-        Assert.assertNotNull(item);
-        Assert.assertEquals(id, item.getId());
+        assertNotNull(item);
+        assertEquals(id, item.getId());
 
         // delete item
         RestAPIResponse<Object> deleteResponse = sendDelete(BASE_URL + "/" + id);
-        Assert.assertEquals(Response.Status.OK.getStatusCode(), deleteResponse.getStatus());
+        assertEquals(Response.Status.OK.getStatusCode(), deleteResponse.getStatus());
 
         // check if item is deleted
         response = sendGet(BASE_URL + "/" + id, Item.class);
-        Assert.assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
-        Assert.assertNull(response.getElement());
+        assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
+        assertNull(response.getElement());
     }
 
     @Test
@@ -84,22 +90,105 @@ public class RestItemsServiceTest extends RestApiTest
         item.getItemLocationStocks().add(locationStock);
 
         RestAPIResponse<Item> response = sendPost(BASE_URL, item, Item.class);
-        Assert.assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
         Item createdItem = response.getElement();
-        Assert.assertNotNull(createdItem);
+        assertNotNull(createdItem);
 
-        Assert.assertTrue(createdItem.getId() > 0);
-        Assert.assertEquals(item.getTitle(), createdItem.getTitle());
-        Assert.assertEquals(item.getDescription(), createdItem.getDescription());
-        Assert.assertEquals(item.getPrice(), createdItem.getPrice(), 0.0001f);
+        assertTrue(createdItem.getId() > 0);
+        assertEquals(item.getTitle(), createdItem.getTitle());
+        assertEquals(item.getDescription(), createdItem.getDescription());
+        assertEquals(item.getPrice(), createdItem.getPrice(), 0.0001f);
 
-        Assert.assertEquals(locationStock.getStock(), createdItem.getTotalStock());
-        Assert.assertEquals(1, createdItem.getItemLocationStocks().size());
+        assertEquals(locationStock.getStock(), createdItem.getTotalStock());
+        assertEquals(1, createdItem.getItemLocationStocks().size());
         ItemLocationStock itemLocationStock = createdItem.getItemLocationStocks().get(0);
-        Assert.assertEquals(locationStock.getStock(), itemLocationStock.getStock());
+        assertEquals(locationStock.getStock(), itemLocationStock.getStock());
 
         Location createdItemLocation = itemLocationStock.getLocation();
-        Assert.assertNotNull(createdItemLocation);
-        Assert.assertEquals(location.getId(), createdItemLocation.getId());
+        assertNotNull(createdItemLocation);
+        assertEquals(location.getId(), createdItemLocation.getId());
+    }
+
+    @Test
+    public void addNewItemWithInvalidStockAmountTest()
+    {
+        Item item = new Item();
+        item.setTitle("Test 3D Printer");
+        item.setDescription("Test 3D Printer Description");
+        item.setPrice(23.5f);
+
+        ItemLocationStock locationStock = new ItemLocationStock();
+        // setting invalid stock amount
+        locationStock.setStock(-30);
+
+        // location id should be enough to create new item.
+        Location location = new Location();
+        location.setId(1);
+        locationStock.setLocation(location);
+        item.getItemLocationStocks().add(locationStock);
+
+        RestAPIResponse<Object> response = sendPost(BASE_URL, item, null);
+        assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    public void addNewItemWithInvalidLocationTest()
+    {
+        Item item = new Item();
+        item.setTitle("Test 3D Printer");
+        item.setDescription("Test 3D Printer Description");
+        item.setPrice(23.5f);
+
+        ItemLocationStock locationStock = new ItemLocationStock();
+        locationStock.setStock(10);
+
+        // location id should be enough to create new item.
+        Location location = new Location();
+        // setting invalid location id
+        location.setId(-1);
+        locationStock.setLocation(location);
+        item.getItemLocationStocks().add(locationStock);
+
+        RestAPIResponse<Object> response = sendPost(BASE_URL, item, null);
+        assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+    }
+
+
+    @Test
+    public void updateItemTest() throws Exception
+    {
+        int id = 1;
+        RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
+        Item element = response.getElement();
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertNotNull(element);
+
+        String newTitle = "New 3d Printer";
+        String newDescription = "Simple printer description";
+        float price = 399.0f;
+        int totalStock = 10;
+
+        String patchRow1 = "{\"op\": \"replace\", \"path\": \"/title\", \"value\": \"" + newTitle + "\"}";
+        String patchRow2 = "{\"op\": \"replace\", \"path\": \"/description\", \"value\": \"" + newDescription + "\"}";
+        String patchRow3 = "{\"op\": \"replace\", \"path\": \"/price\", \"value\": \"" + price + "\"}";
+        String patchRow4 = "{\"op\": \"replace\", \"path\": \"/totalStock\", \"value\": \"" + totalStock + "\"}";
+        String patchStr = "[" + patchRow1 +","+ patchRow2 + "," + patchRow3 + "," + patchRow4 +"]";
+
+        JsonPatch patch = getJsonMapper().readValue(patchStr, JsonPatch.class);
+
+        response = sendPatch(BASE_URL + "/" + id, patch, Item.class);
+
+        assertNotNull(response);
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        Item updatedElement = response.getElement();
+        assertNotNull(updatedElement);
+
+        assertEquals(newTitle, updatedElement.getTitle());
+        assertEquals(newDescription, updatedElement.getDescription());
+        assertEquals(price, updatedElement.getPrice(), 0.0001f);
+
+        //totalStock should not change as it is calculated property
+        assertEquals(element.getTotalStock(), updatedElement.getTotalStock());
     }
 }

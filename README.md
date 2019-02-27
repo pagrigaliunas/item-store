@@ -25,7 +25,7 @@ To build application, simply type:
 ## Running application
 To run application using gradle:
 
-`gradle(w) -Dlog4j.configurationFile=.\log4j2.properties run`
+`gradle(w) run`
 
 where log4j file properties are specified using system variable `log4j.configurationFile`.
 

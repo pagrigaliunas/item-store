@@ -65,6 +65,8 @@ public class ItemServiceImpl implements ItemService
 
         lock.writeLock().lock();
         repository.saveItem(item);
+        int total = item.getItemLocationStocks().stream().mapToInt(ItemLocationStock::getStock).sum();
+        item.setTotalStock(total);
         dirty = true;
         lock.writeLock().unlock();
     }
