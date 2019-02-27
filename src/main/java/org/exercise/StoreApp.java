@@ -1,5 +1,6 @@
 package org.exercise;
 
+import com.sun.net.httpserver.HttpServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.exercise.db.h2.H2Repository;
@@ -18,9 +19,12 @@ public class StoreApp
 {
     private static final Logger logger = LogManager.getLogger(StoreApp.class);
 
-    private void run()
+    private HttpServer httpServer;
+    private H2Repository repository;
+
+    public void start()
     {
-        H2Repository repository = new H2Repository();
+        repository = new H2Repository();
         repository.open();
 
         ServiceRegistry.setService(ItemServiceImpl.class, new ItemServiceImpl(repository));
@@ -33,14 +37,27 @@ public class StoreApp
                 RestItemsService.class,
                 RestLocationsService.class);
         // starting server
-        JdkHttpServerFactory.createHttpServer(baseUri, config);
+        httpServer = JdkHttpServerFactory.createHttpServer(baseUri, config);
         logger.info("HTTP server started on port " + port + ".");
+    }
+
+    public void stop()
+    {
+        if (httpServer != null)
+        {
+            httpServer.stop(0);
+        }
+
+        if (repository != null)
+        {
+            repository.close();
+        }
     }
 
     public static void main(String[] args)
     {
         logger.info("Starting Store Application...");
-        new StoreApp().run();
+        new StoreApp().start();
         logger.info("Store Application started.");
     }
 }
