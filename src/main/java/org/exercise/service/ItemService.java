@@ -3,7 +3,6 @@ package org.exercise.service;
 import java.util.Collection;
 import org.exercise.service.model.Item;
 
-import java.util.List;
 import org.exercise.service.model.Location;
 import org.exercise.service.validation.ValidationException;
 
@@ -17,7 +16,7 @@ public interface ItemService
 
     Item getItem(int id);
 
-    List<Item> getAllItems();
+    Collection<Item> getAllItems();
 
     Collection<Location> getAllLocations();
 }

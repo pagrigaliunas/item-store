@@ -125,7 +125,6 @@ public class RestItemsService
     {
         JsonNode itemNode = jsonMapper.valueToTree(item);
         itemNode = patch.apply(itemNode);
-        item = jsonMapper.treeToValue(itemNode, Item.class);
-        return item;
+        return jsonMapper.treeToValue(itemNode, Item.class);
     }
 }

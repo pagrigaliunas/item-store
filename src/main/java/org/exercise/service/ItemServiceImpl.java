@@ -1,13 +1,14 @@
 package org.exercise.service;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.exercise.db.Repository;
 import org.exercise.service.model.Item;
 
-import java.util.List;
 import org.exercise.service.model.Location;
 import org.exercise.service.validation.ItemValidator;
 import org.exercise.service.validation.ValidationException;
@@ -17,7 +18,7 @@ public class ItemServiceImpl implements ItemService
     private static final Logger logger = LogManager.getLogger(ItemServiceImpl.class);
 
     private final Repository repository;
-    private List<Item> items;
+    private Map<Integer, Item> items;
     private volatile boolean dirty = true;
     private final ReentrantReadWriteLock lock;
 
@@ -68,34 +69,21 @@ public class ItemServiceImpl implements ItemService
     {
         logger.debug("Getting Item with id " + id);
         refreshItemData();
-        return findItem(id);
+        return items.get(id);
     }
 
     @Override
-    public List<Item> getAllItems()
+    public Collection<Item> getAllItems()
     {
         logger.debug("Getting all Items.");
         refreshItemData();
-        return items;
+        return items.values();
     }
 
     @Override
     public Collection<Location> getAllLocations()
     {
         return repository.getLocations().values();
-    }
-
-    //probably still faster than going into db.
-    private Item findItem(int id)
-    {
-        for (Item item : items)
-        {
-            if (item.getId() == id)
-            {
-                return item;
-            }
-        }
-        return null;
     }
 
     private void refreshItemData()
@@ -109,7 +97,7 @@ public class ItemServiceImpl implements ItemService
             // In this case no need for pointless cache refresh.
             if (dirty)
             {
-                items = repository.readAllItems();
+                items = repository.readAllItems().stream().collect(Collectors.toMap(Item::getId, item -> item));
                 dirty = false;
             }
             lock.readLock().lock();
