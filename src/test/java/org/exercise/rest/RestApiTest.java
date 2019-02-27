@@ -48,7 +48,7 @@ public class RestApiTest
         app.stop();
     }
 
-    private <T> T sendRequest(String url, String method, Class<T> valueType)
+    private <T> RestAPIResponse<T> sendRequest(String url, String method, Class<T> valueType)
     {
         try {
             URL obj = new URL(url);
@@ -64,13 +64,14 @@ public class RestApiTest
             logger.debug("Sending '{}' request to URL : {}", method, url);
             logger.debug("Response Code : {}", responseCode);
 
+            T element = null;
             // checking for success
-            if (isSuccess(responseCode))
+            if (isSuccess(responseCode) && valueType != null)
             {
                 String response = readContent(con);
-                return jsonMapper.readValue(response, valueType);
+                element = jsonMapper.readValue(response, valueType);
             }
-            return null;
+            return new RestAPIResponse<>(element, responseCode);
         }
         catch (IOException exc)
         {
@@ -93,12 +94,17 @@ public class RestApiTest
         return response.toString();
     }
 
-    <T> T sendGet(String url, Class<T> valueType)
+    <T> RestAPIResponse<T> sendGet(String url, Class<T> valueType)
     {
         return sendRequest(url, HttpMethod.GET, valueType);
     }
 
-    <T> T sendPost(String url, Class<T> valueType)
+    <T> RestAPIResponse<T> sendDelete(String url)
+    {
+        return sendRequest(url, HttpMethod.DELETE, null);
+    }
+
+    <T> RestAPIResponse<T> sendPost(String url, Class<T> valueType)
     {
         return sendRequest(url, HttpMethod.POST, valueType);
     }
@@ -106,5 +112,33 @@ public class RestApiTest
     private boolean isSuccess(int responseCode)
     {
         return responseCode / 100 == 2;
+    }
+
+    public class RestAPIResponse<T>
+    {
+        private T element;
+        private int status;
+
+        public RestAPIResponse(T element, int status)
+        {
+            this.element = element;
+            this.status = status;
+        }
+
+        public T getElement() {
+            return element;
+        }
+
+        public void setElement(T element) {
+            this.element = element;
+        }
+
+        public int getStatus() {
+            return status;
+        }
+
+        public void setStatus(int status) {
+            this.status = status;
+        }
     }
 }

@@ -12,8 +12,9 @@ public class RestLocationsServiceTest extends RestApiTest
     @Test
     public void getLocationsTest()
     {
-        Location[] locations = sendGet(BASE_URL, Location[].class);
+        RestAPIResponse<Location[]> response = sendGet(BASE_URL, Location[].class);
 
+        Location[] locations = response.getElement();
         Assert.assertNotNull(locations);
         Assert.assertEquals(3, locations.length);
     }

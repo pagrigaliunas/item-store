@@ -1,5 +1,6 @@
 package org.exercise.rest;
 
+import javax.ws.rs.core.Response;
 import org.exercise.service.model.Item;
 import org.junit.Assert;
 import org.junit.Test;
@@ -12,8 +13,9 @@ public class RestItemsServiceTest extends RestApiTest
     @Test
     public void getItemsTest()
     {
-        Item[] items = sendGet(BASE_URL, Item[].class);
+        RestAPIResponse<Item[]> response = sendGet(BASE_URL, Item[].class);
 
+        Item[] items = response.getElement();
         Assert.assertNotNull(items);
         Assert.assertEquals(5, items.length);
     }
@@ -22,18 +24,37 @@ public class RestItemsServiceTest extends RestApiTest
     public void getSingleItemTest()
     {
         int id = 1;
-        Item item = sendGet(BASE_URL + "/" + id, Item.class);
+        RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
 
+        Item item = response.getElement();
         Assert.assertNotNull(item);
         Assert.assertEquals(id, item.getId());
     }
 
     @Test
-    public void getFailToGetItemTest()
+    public void failToGetItemTest()
     {
         int id = -1;
-        Item item = sendGet(BASE_URL + "/" + id, Item.class);
+        RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
 
-        Assert.assertNull(item);
+        Assert.assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
+        Assert.assertNull(response.getElement());
+    }
+
+    @Test
+    public void deleteSingleItemTest()
+    {
+        int id = 1;
+        RestAPIResponse<Item> response = sendGet(BASE_URL + "/" + id, Item.class);
+        Item item = response.getElement();
+        Assert.assertNotNull(item);
+        Assert.assertEquals(id, item.getId());
+
+        RestAPIResponse<Object> deleteResponse = sendDelete(BASE_URL + "/" + id);
+        Assert.assertEquals(Response.Status.OK.getStatusCode(), deleteResponse.getStatus());
+
+        response = sendGet(BASE_URL + "/" + id, Item.class);
+        Assert.assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
+        Assert.assertNull(response.getElement());
     }
 }
