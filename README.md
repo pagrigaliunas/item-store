@@ -27,8 +27,6 @@ To run application using gradle:
 
 `gradle(w) run`
 
-where log4j file properties are specified using system variable `log4j.configurationFile`.
-
 ## Running tests 
 To run application tests using gradle:
 
