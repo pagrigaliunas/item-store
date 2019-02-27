@@ -17,4 +17,23 @@ public class RestItemsServiceTest extends RestApiTest
         Assert.assertNotNull(items);
         Assert.assertEquals(5, items.length);
     }
+
+    @Test
+    public void getSingleItemTest()
+    {
+        int id = 1;
+        Item item = sendGet(BASE_URL + "/" + id, Item.class);
+
+        Assert.assertNotNull(item);
+        Assert.assertEquals(id, item.getId());
+    }
+
+    @Test
+    public void getFailToGetItemTest()
+    {
+        int id = -1;
+        Item item = sendGet(BASE_URL + "/" + id, Item.class);
+
+        Assert.assertNull(item);
+    }
 }

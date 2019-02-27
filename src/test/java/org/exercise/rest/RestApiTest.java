@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import javax.ws.rs.HttpMethod;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.exercise.StoreApp;
@@ -63,16 +64,13 @@ public class RestApiTest
             logger.debug("Sending '{}' request to URL : {}", method, url);
             logger.debug("Response Code : {}", responseCode);
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-            String inputLine;
-            StringBuilder response = new StringBuilder();
-
-            while ((inputLine = in.readLine()) != null)
+            // checking for success
+            if (isSuccess(responseCode))
             {
-                response.append(inputLine);
+                String response = readContent(con);
+                return jsonMapper.readValue(response, valueType);
             }
-            in.close();
-            return jsonMapper.readValue(response.toString(), valueType);
+            return null;
         }
         catch (IOException exc)
         {
@@ -81,13 +79,32 @@ public class RestApiTest
         return null;
     }
 
-    public <T> T sendGet(String url, Class<T> valueType)
+    private String readContent(HttpURLConnection con) throws IOException
     {
-        return sendRequest(url, "GET", valueType);
+        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+        String inputLine;
+        StringBuilder response = new StringBuilder();
+
+        while ((inputLine = in.readLine()) != null)
+        {
+            response.append(inputLine);
+        }
+        in.close();
+        return response.toString();
     }
 
-    public <T> T sendPost(String url, Class<T> valueType)
+    <T> T sendGet(String url, Class<T> valueType)
     {
-        return sendRequest(url, "POST", valueType);
+        return sendRequest(url, HttpMethod.GET, valueType);
+    }
+
+    <T> T sendPost(String url, Class<T> valueType)
+    {
+        return sendRequest(url, HttpMethod.POST, valueType);
+    }
+
+    private boolean isSuccess(int responseCode)
+    {
+        return responseCode / 100 == 2;
     }
 }
