@@ -1,13 +1,13 @@
 package org.exercise.rest;
 
+import org.exercise.Config;
 import org.exercise.service.model.Location;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class RestLocationsServiceTest extends RestApiTest
 {
-    //TODO use config file
-    private static final String BASE_URL = "http://localhost:9081/locations";
+    private static final String BASE_URL = "http://localhost:" + Config.getIntance().getPort() + "/locations";
 
     @Test
     public void getLocationsTest()

@@ -17,6 +17,7 @@ import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.exercise.Config;
 import org.exercise.StoreApp;
 import org.junit.After;
 import org.junit.Before;
@@ -29,13 +30,10 @@ public class RestApiTest
     private static final Logger logger;
     static
     {
-        String property = System.getProperty(StoreApp.LOG4J_CONFIG_PROP_NAME);
-        if (property == null || property.isEmpty())
-        {
-            System.setProperty(StoreApp.LOG4J_CONFIG_PROP_NAME, ".\\log4j2.properties");
-        }
+        // making sure to load needed config files before
+        // any log4j logger is constructed.
+        Config.getIntance();
         logger = LogManager.getLogger(RestApiTest.class);
-
         allowUnsupportedHttpMethods("PATCH");
     }
 

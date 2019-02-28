@@ -17,16 +17,12 @@ import java.net.URI;
 
 public class StoreApp
 {
-    public static final String LOG4J_CONFIG_PROP_NAME = "log4j.configurationFile";
-
     private static final Logger logger;
     static
     {
-        String property = System.getProperty(LOG4J_CONFIG_PROP_NAME);
-        if (property == null || property.isEmpty())
-        {
-            System.setProperty(LOG4J_CONFIG_PROP_NAME, ".\\log4j2.properties");
-        }
+        // making sure to load needed config files before
+        // any log4j logger is constructed.
+        Config.getIntance();
         logger = LogManager.getLogger(StoreApp.class);
     }
 
@@ -41,8 +37,8 @@ public class StoreApp
         ServiceRegistry.setService(ItemServiceImpl.class, new ItemServiceImpl(repository));
 
         logger.info("Starting HTTP server...");
-        int port = 9081;
-        URI baseUri = UriBuilder.fromUri("http://localhost/").port(9081).build();
+        int port = Config.getIntance().getPort();
+        URI baseUri = UriBuilder.fromUri("http://localhost/").port(port).build();
         ResourceConfig config = new ResourceConfig(
                 JacksonFeature.class,
                 RestItemsService.class,

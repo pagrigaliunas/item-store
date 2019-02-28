@@ -3,6 +3,7 @@ package org.exercise.rest;
 import javax.ws.rs.core.Response;
 
 import com.github.fge.jsonpatch.JsonPatch;
+import org.exercise.Config;
 import org.exercise.service.model.Item;
 import org.exercise.service.model.ItemLocationStock;
 import org.exercise.service.model.Location;
@@ -15,8 +16,7 @@ import static org.junit.Assert.assertTrue;
 
 public class RestItemsServiceTest extends RestApiTest
 {
-    //TODO use config file
-    private static final String BASE_URL = "http://localhost:9081/items";
+    private static final String BASE_URL = "http://localhost:" + Config.getIntance().getPort() + "/items";
 
     @Test
     public void getItemsTest()

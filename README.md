@@ -32,6 +32,8 @@ To run application tests using gradle:
 
 `gradle(w) test`
 
+Test results can be found in: `.\build\test-results\test\` folder. 
+
 ## REST API
 REST API can be accessed using this url:
 
@@ -42,5 +44,5 @@ POST `http:\\localhost:<port>\items` - adds new item<br/>
 PATCH `http:\\localhost:<port>\items\{id}` - update existing item. Supports [Json Patch](https://tools.ietf.org/html/rfc6902)<br/>
 GET `http:\\localhost:<port>\items\locations` - gets all possible locations<br/>
 
-for now `<port>` is hardcoded and is `9081`. <br/>
+`<port>` can be changed in `storeApp.properties` file. <br/>
 API can be testes using [Postman](https://www.getpostman.com/tools) or other similar tool.

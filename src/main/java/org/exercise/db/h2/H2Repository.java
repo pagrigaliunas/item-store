@@ -2,6 +2,7 @@ package org.exercise.db.h2;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.exercise.Config;
 import org.exercise.db.Repository;
 import org.exercise.service.model.GPS;
 import org.exercise.service.model.Item;
@@ -270,7 +271,8 @@ public class H2Repository implements Repository
 
     private void createDbStructure() throws SQLException {
         logger.info("Creating db structure ...");
-        String url = "jdbc:h2:mem:store";
+        Config config = Config.getIntance();
+        String url = config.getJdbcUrl() + ":" + config.getDbName();
         ClassLoader classLoader = getClass().getClassLoader();
         URL fileUrl = classLoader.getResource("sql/h2_schema.sql");
         if (fileUrl != null)
