@@ -18,6 +18,9 @@ Optional:<br/>
     
 Preferably shared via public git repo.<br/>
 Project should contain instructions how to build and use the project.
+## Requirements
+To compile and run this application with gradle you require:
+* JDK 1.8 or above
 ## Building application
 To build application, simply type:
 
